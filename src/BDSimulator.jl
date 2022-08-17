@@ -13,31 +13,44 @@ export
     simulateBDStochastic
 
 include("SSA.jl")
+"
+Simulates a simple birth - death process of cells with ba constant rate of birth - and d*N a rate of 
+death linearly dependent on cell population using numberical solver for a the differential equation 
+dN/dt = b - d*n
 
-# Simulates a simple birth - death process of cells with b - a constant rate of birth and d*N a rate of 
-# death linearly dependent on cell population using numberical solver for an ODE
-function simulateBDDeterministic(;birth_rate::Float64=1.0,death_rate::Float64=0.1, timeSpan::Float64=100.0)
-    f(n, p, t) = birth_rate - death_rate*n
-    n_0 = 0
+- **b** : the constant birth rate of the system (`Float64`).
+- **d** : the death rate of the cells - dependent on the number of cells (`Float64`).
+- **timeSpan** : the simulation time (`Float64`).
+- **n0** : the initial number of cells (`Int64`).
+"
+function simulateBDDeterministic(;b::Float64=1.0,d::Float64=0.1, timeSpan::Float64=100.0, n0::Int64=1)
+    f(n, p, t) = b - d*n
+    n_0 = n0
     tspan = (0.0,timeSpan)
     prob = ODEProblem(f,n_0,tspan)
     sol = solve(prob)
 end
+"
+Simulates a simple birth - death process of cells using the Gillespie stochastic simulation algorithm with propensities
+p_b and and p_d for birth and death rates 
 
-# Simulates a simple birth - death process of cells with b - a constant propensity of birth and d*N a propensity of 
-# death linearly dependent on cell population using an implementation of the Gillespie SSA
-function simulateBDStochastic(;birth_rate::Float64=1.0,death_rate::Float64=0.1, timeSpan::Float64=100.0)
+- **p_b** : the constant birth rate of the system (`Float64`).
+- **p_d** : the death rate of the cells - dependent on the number of cells (`Float64`).
+- **timeSpan** : the simulation time (`Float64`).
+- **n0** : the initial number of cells (`Int64`).
+"
+function simulateBDStochastic(;p_b::Float64=1.0,p_d::Float64=0.1, timeSpan::Float64=100.0, n0::Int64=1)
     function F2(x,parms)
         (N,) = x
-        (p_b,p_d) = parms
-        [p_b,p_d*N]
+        (pb,pd) = parms
+        [pb,pd*N]
     end
 
-    x0 = [0]
+    x0 = [n0]
     nu = reshape([[1];[-1]],2,1)
-    parms = [birth_rate,death_rate]
+    parms = [p_b,p_d]
     tf = timeSpan
-    Random.seed!(1234)
+    #Random.seed!(1234)
 
     result = gillespie(x0,F2,nu,parms,tf)
 
